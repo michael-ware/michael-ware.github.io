@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Michael Thompson v1.0</title>
+    <link rel="stylesheet" href="style.scss" />
+  </head>
+  <body style="padding: 0; margin: 0">
+    <div id="canvasBackground">
+      <canvas id="canvasCity">
+        Sorry, your browser does not support canvas.
+      </canvas>
+    </div>
+    <div id="terminal" class="loaded">
+      <div id="terminal-header">
+        <span class="glitch glitch-text" data-text="MICHAEL THOMPSON v1.0"
+          >MICHAEL THOMPSON <span id="version">v1.0</span></span
+        >
+        <div class="header-lights">
+          <span class="led red"></span>
+          <span class="led yellow"></span>
+          <span class="led green"></span>
+        </div>
+      </div>
+      <div id="terminal-content">
+        <pre class="scanlines"></pre>
+        <form id="contact-form" style="display: none">
+          <input type="text" id="form-name" name="name" required />
+          <input type="email" id="form-email" name="email" required />
+          <textarea id="form-message" name="message" required></textarea>
+        </form>
+        <div id="help-text">
+          <span>Available Commands:</span>
+          <span>michael --info</span> | <span>contact</span> |
+          <span>clear</span> |
+          <span>help</span>
+        </div>
+      </div>
+    </div>
+    <script src="city.js"></script>
+    <script src="email.js"></script>
+    <script
+      type="text/javascript"
+      src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"
+    ></script>
+    <script type="text/javascript">
+      (function () {
+        emailjs.init({
+          publicKey: 'F-xR9kBu9Lw9qfAg1',
+        });
+      })();
+    </script>
+  </body>
+</html>
