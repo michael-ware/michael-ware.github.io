@@ -4,7 +4,326 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Michael Thompson v1.0</title>
-    <link rel="stylesheet" href="style.scss" />
+    <style lang="css">
+      :root {
+        --neon-cyan: #00ffea;
+        --matrix-green: #00ff9d;
+        --neon-pink: #ff00ff;
+      }
+
+      .flex-center {
+        display: flex;
+        align-items: center;
+      }
+
+      .bold {
+        font-weight: bold;
+      }
+
+      .relative {
+        position: relative;
+      }
+
+      .absolute-full {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0;
+        }
+      }
+
+      @keyframes textGlitch {
+        20% {
+          opacity: 0.8;
+        }
+        60% {
+          text-shadow: 2px 0 var(--neon-pink), -2px 0 var(--neon-cyan);
+        }
+      }
+
+      @keyframes resize-pulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(0.99);
+        }
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background-color: #000;
+      }
+
+      #canvasBackground {
+        height: 100vh;
+        width: 100vw;
+        background: linear-gradient(
+          180deg,
+          rgba(204, 66, 93, 1) 5%,
+          rgba(236, 106, 101, 1) 10%,
+          rgba(236, 106, 101, 1) 40%,
+          rgba(244, 147, 115, 1) 45%,
+          rgba(244, 147, 115, 1) 55%,
+          rgba(255, 184, 121, 1) 60%,
+          rgba(255, 184, 121, 1) 70%,
+          rgba(249, 205, 142, 1) 75%,
+          rgba(249, 205, 142, 1) 85%,
+          rgba(252, 239, 141, 1) 90%
+        );
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: -1;
+      }
+
+      #canvasCity {
+        width: 100%;
+        height: 100%;
+      }
+
+      #terminal {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        width: 80%;
+        max-width: 800px;
+        height: 80vh;
+        overflow: auto;
+        background: rgba(0, 20, 25, 0.8);
+        border: 1px solid var(--neon-cyan);
+        box-shadow: 0 0 30px rgba(0, 255, 234, 0.3);
+        font-family: 'Courier New', monospace;
+        color: var(--matrix-green);
+        z-index: 1000;
+        border-radius: 4px;
+        transform: translate(-50%, -50%) scale(0.9);
+        opacity: 0;
+        transition: all 0.5s ease-out;
+        box-sizing: border-box;
+        font-size: 20px;
+        color: #0f0;
+      }
+
+      #terminal.loaded {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      #terminal a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      #terminal a:hover {
+        color: var(--neon-cyan);
+      }
+      #terminal-header {
+        padding: 8px;
+        background: rgba(0, 40, 50, 0.8);
+        border-bottom: 1px solid var(--neon-cyan);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-family: 'Courier New', monospace;
+      }
+
+      #terminal-content {
+        font-size: 1.11em;
+        overflow: auto;
+        padding: 20px;
+        padding-top: 10px;
+        height: 70vh;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      #terminal-content pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+
+      .header-lights {
+        display: flex;
+        gap: 6px;
+      }
+
+      .led {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        opacity: 0.8;
+      }
+
+      .led.red {
+        background: #ff003c;
+      }
+
+      .led.yellow {
+        background: #fff300;
+      }
+
+      .led.green {
+        background: #00ff04;
+      }
+
+      .scanlines::before {
+        content: '';
+        pointer-events: none;
+        background: repeating-linear-gradient(
+          0deg,
+          rgba(0, 255, 234, 0.05) 0px,
+          rgba(0, 255, 234, 0.05) 1px,
+          transparent 1px,
+          transparent 3px
+        );
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      .glitch {
+        color: var(--neon-cyan);
+        font-weight: bold;
+        text-shadow: 0 0 10px rgba(0, 255, 234, 0.4);
+      }
+
+      .glitch-text {
+        font-size: 1.3rem;
+        padding-left: 15px;
+        color: var(--neon-cyan);
+        text-shadow: 0 0 10px var(--matrix-green);
+        position: relative;
+      }
+
+      .cursor {
+        animation: blink 1s infinite;
+        color: var(--neon-cyan);
+        font-weight: bold;
+        user-select: none;
+        display: inline-block;
+        vertical-align: bottom;
+      }
+
+      .terminal-text {
+        text-shadow: 0 0 8px rgba(0, 255, 234, 0.3);
+        line-height: 1.4;
+      }
+
+      .prompt,
+      .section-header {
+        color: var(--matrix-green);
+        font-weight: bold;
+      }
+
+      .prompt-input {
+        font-family: inherit;
+        font-size: inherit;
+        color: inherit;
+        background-color: transparent;
+        border: none;
+        outline: none;
+        width: auto;
+        padding: 0;
+        margin: 0;
+        vertical-align: bottom;
+      }
+      .section-header {
+        text-decoration: underline;
+        margin: 10px 0;
+      }
+
+      .indent {
+        margin-left: 20px;
+      }
+
+      .mt-blue {
+        color: var(--neon-cyan) !important;
+      }
+
+      #version {
+        color: var(--matrix-green);
+        font-size: 0.8em;
+      }
+
+      .resizing {
+        animation: resize-pulse 0.2s ease-in-out;
+      }
+
+      ::-webkit-scrollbar {
+        width: 4px !important;
+        background: var(--neon-cyan);
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--neon-cyan);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: var(--neon-cyan);
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--matrix-green);
+      }
+
+      .prompt {
+        user-select: text;
+        cursor: text;
+        margin-right: 0.5em;
+        display: inline-block;
+        vertical-align: bottom;
+      }
+
+      .prompt::before {
+        content: attr(data-content);
+        margin-right: 0.5em;
+        user-select: none;
+      }
+
+      .line {
+        margin-bottom: 0.5em;
+      }
+
+      #help-text {
+        text-align: center;
+        color: var(--matrix-green);
+        font-size: 16px;
+        margin-top: 10px;
+        position: absolute;
+        bottom: 0;
+      }
+
+      #help-text span {
+        margin: 0 10px;
+      }
+
+      .link {
+        color: #0f0;
+        text-decoration: none;
+        border-bottom: 1px dotted #0f0;
+      }
+      .link:hover {
+        color: #ff0;
+        border-bottom: 1px dotted #ff0;
+      }
+    </style>
   </head>
   <body style="padding: 0; margin: 0">
     <div id="canvasBackground">
@@ -38,8 +357,933 @@
         </div>
       </div>
     </div>
-    <script src="city.js"></script>
-    <script src="email.js"></script>
+    <script>
+      const canvas = document.getElementById('canvasCity');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      const ctx = canvas.getContext('2d');
+      const rowHeight = 10;
+      ctx.lineWidth = rowHeight;
+      ctx.strokeStyle = '#550000';
+
+      let buildingRows = 2;
+
+      let buildingRowH = [
+        [
+          [17, 12],
+          [15, 8],
+          [13, 4],
+        ],
+        [
+          [22, 17],
+          [20, 13],
+          [18, 9],
+        ],
+        [
+          [27, 22],
+          [25, 18],
+          [23, 14],
+        ],
+      ];
+
+      let buildingRowC = [
+        ['#751856', '#A32858', '#CC425D', '#EA6262', '#F49373'],
+        ['#CC425D', '#EA6262', '#F49373', '#F49373', '#FFB879'],
+        ['#FFB879', '#FFB879', '#FFB879', '#FCEF8D', '#FCEF8D'],
+      ];
+
+      const rndmRng = (h, l) => Math.random() * (h - l) + l;
+
+      function randomDimension(max, min) {
+        let rnd = Math.floor(Math.random() * (max - min) + min);
+        return rnd % 2 === 0 ? ++rnd * rowHeight : rnd * rowHeight;
+      }
+
+      function coinflip(a, b) {
+        return Math.floor(Math.random() * 2) == 0 ? a : b;
+      }
+
+      let randomProperty = function (obj) {
+        var keys = Object.keys(obj);
+        return obj[keys[(keys.length * Math.random()) << 0]];
+      };
+
+      function shuffle(array) {
+        var currentIndex = array.length,
+          randomIndex;
+
+        while (0 !== currentIndex) {
+          randomIndex = Math.floor(Math.random() * currentIndex);
+          currentIndex--;
+
+          [array[currentIndex], array[randomIndex]] = [
+            array[randomIndex],
+            array[currentIndex],
+          ];
+        }
+
+        return array;
+      }
+
+      function windowPane(x, y, colors, unlit) {
+        if (Math.random() < unlit) {
+          //unlit window
+          ctx.strokeStyle = colors[3];
+          ctx.lineTo(x, y);
+          ctx.stroke();
+          ctx.moveTo(x, y);
+        } else {
+          ctx.strokeStyle = colors[0];
+          ctx.lineTo(x - 5, y);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(x - 5, y);
+          ctx.strokeStyle = colors[1];
+          ctx.lineTo(x, y);
+          ctx.stroke();
+          ctx.moveTo(x, y);
+        }
+      }
+
+      function windowlessRowAwning(d, x, y, r) {
+        ctx.strokeStyle = buildingRowC[r][1];
+        ctx.lineTo(d + -1 * rowHeight + x, h - y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(d + -1 * rowHeight + x, h - y);
+        ctx.strokeStyle = buildingRowC[r][2];
+        ctx.lineTo(d + x, h - y);
+        ctx.stroke();
+      }
+
+      function windowlessRow(d, x, y, color) {
+        ctx.strokeStyle = color;
+        ctx.lineTo(d + x, h - y);
+        ctx.stroke();
+      }
+
+      function windowRowDraw(x, y) {
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.closePath();
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+      }
+
+      function windowRow(d, x, y, r) {
+        for (j = 1; j <= d / rowHeight; j++) {
+          j % 2 !== 0
+            ? (ctx.strokeStyle = buildingRowC[r][1])
+            : windowPane(
+                j * rowHeight + x,
+                h - y,
+                [buildingRowC[r][3], buildingRowC[r][4], , buildingRowC[r][0]],
+                0.25
+              );
+          windowRowDraw(j * rowHeight + x, h - y);
+        }
+      }
+
+      function allWindowRow(d, x, y, r) {
+        for (j = 1; j <= d / rowHeight - 1; j++) {
+          j === 1
+            ? (ctx.strokeStyle = buildingRowC[r][3])
+            : windowPane(
+                j * rowHeight + x,
+                h - y,
+                [buildingRowC[r][4], buildingRowC[r][4], , buildingRowC[r][0]],
+                0.07
+              );
+          windowRowDraw(j * rowHeight + x, h - y);
+        }
+      }
+
+      function windowRow2(d, x, y, r) {
+        for (j = 1; j <= d / rowHeight; j++) {
+          j % 2 === 0
+            ? windowPane(
+                j * rowHeight + x,
+                h - y,
+                [buildingRowC[r][1], buildingRowC[r][3], , buildingRowC[r][0]],
+                0.25
+              )
+            : (ctx.strokeStyle = buildingRowC[r][0]);
+          windowRowDraw(j * rowHeight + x, h - y);
+        }
+      }
+
+      function allWindowRow2(d, x, y, r) {
+        for (j = 1; j <= d / rowHeight; j++) {
+          j === 2
+            ? (ctx.strokeStyle = buildingRowC[r][1])
+            : windowPane(
+                j * rowHeight + x,
+                h - y,
+                [buildingRowC[r][3], buildingRowC[r][3], , buildingRowC[r][0]],
+                0.07
+              );
+          windowRowDraw(j * rowHeight + x, h - y);
+        }
+      }
+
+      function draw(l) {
+        for (i = 0; i <= l.height / rowHeight; i++) {
+          let y = i * rowHeight + l.y;
+          ctx.beginPath();
+          ctx.moveTo(l.x, h - y);
+          l.style(i, l, y);
+        }
+      }
+
+      function drawStyle1(i, l, y) {
+        i % 2 === 0
+          ? windowRow(l.width, l.x, y, l.row)
+          : windowlessRow(l.width, l.x, y, buildingRowC[l.row][1]);
+      }
+
+      function drawStyle2(i, l, y) {
+        i === l.height / rowHeight
+          ? windowlessRow(l.width, l.x, y, buildingRowC[l.row][1])
+          : windowRow(l.width, l.x, y, l.row);
+      }
+
+      function drawStyle3(i, l, y) {
+        i % 2 === 0
+          ? allWindowRow(l.width, l.x, y, l.row)
+          : windowlessRowAwning(l.width, l.x, y, l.row);
+      }
+
+      function drawStyleSide1(i, l, y) {
+        i % 2 === 0
+          ? windowRow2(l.width, l.x, y, l.row)
+          : windowlessRow(l.width, l.x, y, buildingRowC[l.row][0]);
+      }
+
+      function drawStyleSide2(i, l, y) {
+        i !== l.height / rowHeight
+          ? windowRow2(l.width, l.x, y, l.row)
+          : windowlessRow(l.width, l.x, y, buildingRowC[l.row][0]);
+      }
+
+      function drawStyleSide3(i, l, y) {
+        i % 2 === 0
+          ? allWindowRow2(l.width, l.x, y, l.row)
+          : windowlessRow(l.width, l.x, y, buildingRowC[l.row][0]);
+      }
+
+      function addSide(w) {
+        if (w < 100) {
+          return 30;
+        } else if (w < 150) {
+          return 50;
+        } else {
+          return 70;
+        }
+      }
+
+      let drawFronts = {
+        1: drawStyle1,
+        2: drawStyle2,
+        3: drawStyle3,
+        4: drawStyle1,
+        5: drawStyle2,
+      };
+
+      let drawSides = {
+        1: drawStyleSide1,
+        2: drawStyleSide2,
+        3: drawStyleSide3,
+        4: drawStyleSide1,
+        5: drawStyleSide2,
+      };
+
+      let layers = [];
+
+      let levelCreate = function (hd, w, x, y, st) {
+        let ht = randomDimension(hd[0], hd[1]);
+        let style = randomProperty(drawSides);
+        let side = addSide(w);
+
+        addLayer(ht, side, x - side, y, style, buildingRows);
+
+        let temp = randomProperty(drawFronts);
+        style =
+          style === drawStyleSide3 && temp !== drawStyle3 ? drawStyle3 : temp;
+
+        addLayer(ht, w, x, y, style, buildingRows);
+
+        return { ht, w, side, x, y };
+      };
+
+      function addTower(l) {
+        let width = randomDimension(3, 1);
+        let height = randomDimension(12, 5);
+        let x = l.x + l.width / 2 - rndmRng(60, 20);
+        let towerX = x + rndmRng(width, rowHeight * 2);
+
+        ctx.beginPath();
+        ctx.strokeStyle = buildingRowC[l.row][0];
+        ctx.moveTo(x, h - l.y - l.height - rowHeight);
+        ctx.lineTo(x + rowHeight, h - l.y - l.height - rowHeight);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.strokeStyle = buildingRowC[l.row][1];
+        ctx.moveTo(x + rowHeight, h - l.y - l.height - rowHeight);
+        ctx.lineTo(x + rowHeight + width, h - l.y - l.height - rowHeight);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.strokeStyle = buildingRowC[l.row][2];
+        ctx.moveTo(x + rowHeight + width, h - l.y - l.height - rowHeight);
+        ctx.lineTo(x + rowHeight * 2 + width, h - l.y - l.height - rowHeight);
+        ctx.stroke();
+
+        ctx.lineWidth = rowHeight / 2;
+        ctx.beginPath();
+        ctx.strokeStyle = buildingRowC[l.row][1];
+        ctx.moveTo(towerX, h - l.y - l.height - rowHeight - 5);
+        ctx.lineTo(towerX, h - l.y - l.height - rowHeight - height);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.strokeStyle = buildingRowC[l.row][0];
+        ctx.moveTo(towerX, h - l.y - l.height - rowHeight - height);
+        ctx.lineTo(towerX, h - l.y - l.height - rowHeight * 2 - height);
+        ctx.stroke();
+        ctx.lineWidth = rowHeight;
+      }
+
+      function addBuilding(s, row) {
+        layers = [];
+        let buildingWidth = randomDimension(20, 5);
+        let lvl = 0;
+        let x = s - buildingWidth;
+        startingX = s - buildingWidth;
+
+        let priorLevel = levelCreate(
+          buildingRowH[buildingRows][0],
+          buildingWidth,
+          x,
+          0
+        );
+        if (
+          priorLevel.side === 70 &&
+          priorLevel.ht < buildingRowH[buildingRows][0][0] * 8.9
+        ) {
+          let width = coinflip(110, 130);
+          priorLevel = levelCreate(
+            buildingRowH[buildingRows][1],
+            width,
+            (priorLevel.w - width) / 2 +
+              priorLevel.x -
+              10 +
+              Math.floor(Math.random() * (15 - -20) + -20),
+            priorLevel.y + priorLevel.ht + rowHeight
+          );
+        }
+
+        if (
+          priorLevel.side === 50 &&
+          priorLevel.ht < buildingRowH[buildingRows][0][0] * 8.8
+        ) {
+          let width = coinflip(70, 90);
+          priorLevel = levelCreate(
+            buildingRowH[buildingRows][2],
+            width,
+            (priorLevel.w - width) / 2 +
+              priorLevel.x -
+              10 +
+              Math.floor(Math.random() * (15 - -20) + -20),
+            priorLevel.y + priorLevel.ht + rowHeight
+          );
+        }
+
+        addLayer(
+          priorLevel.ht,
+          priorLevel.w,
+          priorLevel.x,
+          priorLevel.y,
+          addTower,
+          buildingRows
+        );
+
+        let b = building(s, buildingWidth, row, layers);
+        buildings.push(b);
+      }
+
+      let layer = (height, width, x, y, style, row) => ({
+        height,
+        width,
+        x,
+        y,
+        style,
+        row,
+      });
+
+      function addLayer(height, width, x, y, style, row) {
+        let l = layer(height, width, x, y, style, row);
+        layers.push(l);
+      }
+
+      var buildings = [];
+
+      let building = (start, width, row, layers) => ({
+        start,
+        width,
+        row,
+        layers,
+      });
+
+      function sunset() {
+        let sunsetColors = [
+          '#CC425D',
+          '#EA6262',
+          '#F49373',
+          '#FFB879',
+          '#F9CD8E',
+          '#FCEF8D',
+        ];
+        let y = 0;
+        let height = h * 0.0;
+        let solids = [0, 2, 4, 6, 8, 10];
+        let sizeLottery = shuffle(solids);
+
+        for (i = 0; i <= 10; i++) {
+          if (i === sizeLottery[0]) {
+            height = h * 0.05;
+          } else if (i === sizeLottery[1]) {
+            height = h * 0.3;
+          } else {
+            height = h * 0.1;
+          }
+          if (i % 2 === 0) {
+            ctx.fillStyle = sunsetColors[i / 2];
+            ctx.rect(0, y, w, height);
+            ctx.fill();
+            ctx.beginPath();
+            y += height;
+          } else {
+            ctx.fillStyle = sunsetColors[Math.round(i / 2)];
+            ctx.rect(0, y, w, h * 0.005);
+            ctx.fill();
+            ctx.beginPath();
+            y += h * 0.005;
+
+            ctx.fillStyle = sunsetColors[Math.round(i / 2) - 1];
+            ctx.rect(0, y, w, h * 0.015);
+            ctx.fill();
+            ctx.beginPath();
+            y += h * 0.015;
+
+            ctx.fillStyle = sunsetColors[Math.round(i / 2)];
+            ctx.rect(0, y, w, h * 0.005);
+            ctx.fill();
+            ctx.beginPath();
+            y += h * 0.005;
+
+            ctx.fillStyle = sunsetColors[Math.round(i / 2) - 1];
+            ctx.rect(0, y, w, h * 0.005);
+            ctx.fill();
+            ctx.beginPath();
+            y += h * 0.005;
+
+            ctx.fillStyle = sunsetColors[Math.round(i / 2)];
+            ctx.rect(0, y, w, h * 0.015);
+            ctx.fill();
+            ctx.beginPath();
+            y += h * 0.015;
+
+            ctx.fillStyle = sunsetColors[Math.round(i / 2) - 1];
+            ctx.rect(0, y, w, h * 0.005);
+            ctx.fill();
+            ctx.beginPath();
+            y += h * 0.005;
+          }
+        }
+      }
+
+      sunset();
+
+      function star1(x, y) {
+        ctx.strokeStyle = '#FCEF8D';
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + rowHeight / 2, y);
+        ctx.stroke();
+        ctx.beginPath();
+      }
+
+      function star2(x, y) {
+        ctx.strokeStyle = '#FFB879';
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + rowHeight / 2, y);
+        ctx.stroke();
+        ctx.beginPath();
+      }
+
+      function star3(x, y) {
+        ctx.strokeStyle = '#FFB879';
+        ctx.moveTo(x - (rowHeight / 2) * 2, y);
+        ctx.lineTo(x + (rowHeight / 2) * 2, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y - (rowHeight / 2) * 2);
+        ctx.lineTo(x, y + (rowHeight / 2) * 2);
+        ctx.stroke();
+        ctx.beginPath();
+
+        ctx.moveTo(x - rowHeight / 2, y - rowHeight / 2);
+        ctx.lineTo(x + rowHeight / 2, y - rowHeight / 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x - rowHeight / 2, y + rowHeight / 2);
+        ctx.lineTo(x + rowHeight / 2, y + rowHeight / 2);
+        ctx.stroke();
+        ctx.beginPath();
+
+        ctx.strokeStyle = '#FCEF8D';
+        ctx.moveTo(x - rowHeight / 2, y);
+        ctx.lineTo(x + rowHeight / 2, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y - rowHeight / 2);
+        ctx.lineTo(x, y + rowHeight / 2);
+        ctx.stroke();
+        ctx.beginPath();
+      }
+
+      function star4(x, y) {
+        ctx.strokeStyle = '#FFB879';
+        ctx.moveTo(x - (rowHeight * 9) / 2, y);
+        ctx.lineTo(x + (rowHeight * 9) / 2, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y - (rowHeight * 9) / 2);
+        ctx.lineTo(x, y + (rowHeight * 9) / 2);
+        ctx.stroke();
+        ctx.beginPath();
+
+        ctx.moveTo(x - (rowHeight * 5) / 2, y - rowHeight / 2);
+        ctx.lineTo(x + (rowHeight * 5) / 2, y - rowHeight / 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x - (rowHeight * 5) / 2, y + rowHeight / 2);
+        ctx.lineTo(x + (rowHeight * 5) / 2, y + rowHeight / 2);
+        ctx.stroke();
+        ctx.beginPath();
+
+        ctx.moveTo(x - (rowHeight * 2) / 2, y - (rowHeight * 2) / 2);
+        ctx.lineTo(x + (rowHeight * 2) / 2, y - (rowHeight * 2) / 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x - (rowHeight * 2) / 2, y + (rowHeight * 2) / 2);
+        ctx.lineTo(x + (rowHeight * 2) / 2, y + (rowHeight * 2) / 2);
+        ctx.stroke();
+        ctx.beginPath();
+
+        ctx.strokeStyle = '#FCEF8D';
+        ctx.moveTo(x - (rowHeight * 5) / 2, y);
+        ctx.lineTo(x + (rowHeight * 5) / 2, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y - (rowHeight * 5) / 2);
+        ctx.lineTo(x, y + (rowHeight * 5) / 2);
+        ctx.stroke();
+        ctx.beginPath();
+
+        ctx.moveTo(x - rowHeight / 2, y - rowHeight / 2);
+        ctx.lineTo(x + rowHeight / 2, y - rowHeight / 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x - rowHeight / 2, y + rowHeight / 2);
+        ctx.lineTo(x + rowHeight / 2, y + rowHeight / 2);
+        ctx.stroke();
+        ctx.beginPath();
+      }
+
+      let drawStars = {
+        1: star1,
+        2: star2,
+        3: star3,
+        4: star4,
+      };
+
+      function stars() {
+        ctx.lineWidth = 5;
+        let amount = Math.round((w * h) / 40000);
+
+        for (i = 0; i < amount; i++) {
+          let x = rndmRng(w - 30, 30);
+          let y = rndmRng(h / 2 - 30, 30);
+          let star = randomProperty(drawStars);
+          star(x, y);
+        }
+        ctx.lineWidth = rowHeight;
+      }
+
+      stars();
+
+      function oceanLayer(x, y, colors, d) {
+        while (x <= w + rowHeight) {
+          if (Math.random() < d) {
+            ctx.strokeStyle = colors[0];
+          } else {
+            ctx.strokeStyle = colors[1];
+          }
+
+          ctx.lineTo(x, y);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          x += rowHeight;
+        }
+        ctx.beginPath();
+      }
+
+      function ocean() {
+        let oceanColors = [
+          '#A32858',
+          '#CC425D',
+          '#EA6262',
+          '#F49373',
+          '#FFB879',
+          '#F9CD8E',
+        ];
+        let x = Math.floor(w * 0.7);
+        let y = h - 16 * rowHeight;
+        ctx.moveTo(x, y);
+        let diff = 1;
+        let count = 40;
+        let color = 4;
+
+        while (y < h) {
+          if (count % 8 === 0) {
+            color = count / 8 - 1;
+            diff = 1;
+          }
+
+          oceanLayer(x, y, [oceanColors[color], oceanColors[color - 1]], diff);
+
+          x = Math.floor(w * 0.7);
+          y += rowHeight / 2;
+          diff -= 0.125;
+          count--;
+        }
+      }
+
+      ocean();
+
+      let startingX = Math.floor(w * 0.75);
+      function buildingRow() {
+        while (buildingRows >= 0) {
+          while (startingX > 0) {
+            addBuilding(startingX, buildingRows);
+            startingX -= Math.floor(Math.random() * (100 - 10) + 10);
+          }
+          startingX = Math.floor(w * 0.75);
+          buildingRows--;
+        }
+      }
+
+      buildingRow(buildingRows);
+
+      buildings.forEach(building => {
+        building.layers.forEach(layer => {
+          layer.style === addTower ? layer.style(layer) : draw(layer);
+        });
+      });
+
+      window.addEventListener('resize', function () {
+        let newStartingX = Math.floor(w * 0.75);
+        function buildingRow() {
+          while (buildingRows >= 0) {
+            while (newStartingX > 0) {
+              addBuilding(newStartingX, buildingRows);
+              newStartingX -= Math.floor(Math.random() * (100 - 10) + 10);
+            }
+            newStartingX = Math.floor(w * 0.75);
+            buildingRows--;
+          }
+        }
+
+        buildingRow(buildingRows);
+
+        buildings.forEach(building => {
+          building.layers.forEach(layer => {
+            layer.style === addTower ? layer.style(layer) : draw(layer);
+          });
+        });
+      });
+    </script>
+    <script>
+      const initialContent = [
+        ' 📧 <a href="mailto:if-otherwise@pm.me" class="link">if-otherwise@pm.me</a>',
+        ' 📞 <a href="tel:+12159953055">(215) 995-3055</a>',
+        '🌎 Philadelphia, PA',
+        '<span class="glitch">Founder & Chief Engineer, NeuMe (2023-2025)</span>',
+        '<span>● Invented a brain-computer interface suite that converts EEG signals to arbitrary functions</span>',
+        '<span>● Using open-source hardware & in-house Machine Learning</span>',
+        '<span>● Integrations include mental health/physical assistance, creative tools, gaming</span>',
+        '<span>● <a href="https://neu.me" class="link" target="_blank">https://neu.me</a></span>',
+        '<span class="glitch">Chief Information Officer (CIO), Fluent Finance (2021-2023)</span>',
+        '<span>● Spearheaded security/compliance: SOC 2 (Type 1 & 2) and ISO/IEC 27001 audits</span>',
+        '<span>● Engineered secure banking systems compliant with SOC, ISO 27001, NIST, HIPAA, GDPR</span>',
+        '<span>● Directed operational efficiency initiatives across departments</span>',
+        '<span>● Implemented 100+ Governance Policies for risk management</span>',
+        '<span class="glitch">Head of Product & Development, Fluent Finance (2020-2021)</span>',
+        '<span>● Led engineering teams in end-to-end code development across simultaneous projects</span>',
+        '<span>● Orchestrated cross-department collaboration for project execution</span>',
+        '<span>● Secured $5M+ in investment capital</span>',
+        '<span class="glitch">Co-Founder & CTO, Nest Financial Group (2014-2020)</span>',
+        '<span>● Engineered first digital & US Tribal Special Economic Zone (SEZ) with Catawba Tribe</span>',
+        '<span>● Architected globally scalable SEZ platform with robust security protocols</span>',
+        '<span>● Built and led development team for core platform architecture</span>',
+        '<span class="glitch">Freelance Developer (2012-2014)</span>',
+        '<span>● Designed and developed student directory platform for Northwestern University Kellogg School of Management</span>',
+        '<span>● Historical Monument/Artifact directory platform for University of North Carolina Chapel Hill History Department</span>',
+        '<span class="glitch">TECHNICAL EXPERTISE:</span>',
+        '<span>● Languages: Python, JavaScript/TypeScript, Java, C++, Go, PHP, Swift</span>',
+        '<span>● Frameworks: React, Vue.js, Angular, Node.js, Express, Django, Spring Boot</span>',
+        '<span>● Databases: PostgreSQL, MySQL, MongoDB, DynamoDB</span>',
+        '<span>● Cloud: AWS, Azure, GCP</span>',
+        '<span>● ML: CNNs, Regression, Classification, Clustering, BCI Systems</span>',
+        '<span>● DevOps: Docker, Kubernetes</span>',
+        '<span class="glitch">CYBERSECURITY:</span>',
+        '<span>● Compliance: SOC 2, ISO 27001, NIST 800-53, HIPAA, GDPR, HITRUST</span>',
+        '<span>● Practices: Secure SDLC, Threat Modeling, Security Audits, IAM</span>',
+        '<span>● Testing: Penetration Testing, Vulnerability Scanning, Code Analysis</span>',
+        '<span>● Incident Handling: SIEM, Security Automation, Disaster Recovery</span>',
+        '<span class="glitch">PROJECT MANAGEMENT:</span>',
+        '<span>● Methodologies: Scrum, Kanban, Agile, Waterfall, PMP</span>',
+        '<span>● Tools: Jira, Confluence, Azure DevOps, Asana, MS Project</span>',
+        '<span>● Skills: Team Leadership, Stakeholder Management, Risk Mitigation</span>',
+      ];
+
+      let userInput = '';
+      let promptElement;
+      let cursorElement;
+      let currentInputStage = null;
+      let userName = '';
+      let userEmail = '';
+      let userMessage = '';
+      let mathQuestion = '';
+      let mathAnswer = 0;
+      let hasTyped = false;
+
+      const terminalContent = document.getElementById('terminal-content');
+
+      function printPrompt() {
+        const existingPrompt = terminalContent.querySelector('.prompt');
+        const existingCursor = terminalContent.querySelector('.cursor');
+        if (existingPrompt) {
+          existingPrompt.remove();
+        }
+        if (existingCursor) {
+          existingCursor.remove();
+        }
+        promptElement = document.createElement('span');
+        promptElement.classList.add('prompt');
+        promptElement.dataset.content = 'root@mt:~#';
+        promptElement.textContent = '';
+        terminalContent.appendChild(promptElement);
+
+        cursorElement = document.createElement('span');
+        cursorElement.classList.add('cursor');
+        cursorElement.textContent = '█';
+        terminalContent.appendChild(cursorElement);
+      }
+
+      function generateMathQuestion() {
+        const num1 = Math.floor(Math.random() * 10) + 1;
+        const num2 = Math.floor(Math.random() * 10) + 1;
+        const operators = ['+', '-', '*'];
+        const operator =
+          operators[Math.floor(Math.random() * operators.length)];
+
+        switch (operator) {
+          case '+':
+            mathAnswer = num1 + num2;
+            break;
+          case '-':
+            mathAnswer = num1 - num2;
+            break;
+          case '*':
+            mathAnswer = num1 * num2;
+            break;
+        }
+
+        mathQuestion = `What is ${num1} ${operator} ${num2}?`;
+        return mathQuestion;
+      }
+
+      function printToTerminal(text) {
+        const line = document.createElement('div');
+        line.classList.add('line');
+        line.innerHTML = text; // Use innerHTML
+
+        const currentPrompt = terminalContent.querySelector(
+          '.prompt:last-of-type'
+        );
+        if (currentPrompt) {
+          terminalContent.insertBefore(line, currentPrompt);
+        } else {
+          terminalContent.appendChild(line);
+        }
+      }
+
+      function clearTerminal() {
+        const lines = terminalContent.querySelectorAll('.line');
+        lines.forEach(line => {
+          terminalContent.removeChild(line);
+        });
+      }
+
+      async function startContactFlow() {
+        currentInputStage = 'name';
+        printToTerminal('Please enter your name:');
+        printPrompt();
+      }
+
+      const publicKey = 'F-xR9kBu9Lw9qfAg1';
+      const templateId = 'template_62kz2zi';
+
+      async function processInput(input) {
+        if (currentInputStage === 'name') {
+          userName = input;
+          printToTerminal(userName);
+          currentInputStage = 'email';
+          printToTerminal('Please enter your email:');
+          printPrompt();
+        } else if (currentInputStage === 'email') {
+          const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+          if (!emailRegex.test(input)) {
+            printToTerminal('Invalid email address. Please try again.');
+            printPrompt();
+            return;
+          }
+          userEmail = input;
+          printToTerminal(userEmail);
+          currentInputStage = 'message';
+          printToTerminal('Please enter your message:');
+          printPrompt();
+        } else if (currentInputStage === 'message') {
+          userMessage = input;
+          printToTerminal(userMessage);
+          currentInputStage = 'math';
+          printToTerminal(generateMathQuestion());
+          printPrompt();
+        } else if (currentInputStage === 'math') {
+          const userAnswer = parseInt(input, 10);
+          if (userAnswer === mathAnswer) {
+            const templateParams = {
+              from_name: userName,
+              email: userEmail,
+              message: userMessage,
+            };
+
+            try {
+              printToTerminal('Sending message...');
+              const response = await emailjs.send(
+                'default_service',
+                templateId,
+                templateParams,
+                publicKey
+              );
+              printToTerminal(`Message sent successfully!`);
+            } catch (error) {
+              printToTerminal(`Error sending message: ${error}`);
+            } finally {
+              currentInputStage = null;
+              printPrompt();
+            }
+          } else {
+            printToTerminal(
+              'Incorrect answer. Please try the contact command again.'
+            );
+            currentInputStage = null;
+            printPrompt();
+          }
+        }
+      }
+
+      let typingStarted = false;
+      let emptyCommandWarning = false;
+
+      document.addEventListener('keydown', async function (event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          const command = userInput.trim();
+
+          if (command === '') {
+            if (!emptyCommandWarning) {
+              printToTerminal('Command cannot be empty. Please try again.');
+              emptyCommandWarning = true;
+            }
+            return;
+          }
+
+          emptyCommandWarning = false;
+
+          printToTerminal(`root@mt:~# ${command}`);
+
+          userInput = '';
+          promptElement.textContent = '';
+          typingStarted = false;
+
+          if (currentInputStage) {
+            await processInput(command);
+          } else {
+            switch (command) {
+              case 'contact':
+                startContactFlow();
+                break;
+              case 'clear':
+                clearTerminal();
+                printPrompt();
+                break;
+              case 'help':
+                printToTerminal('Available commands:');
+                printToTerminal(
+                  '  michael --info: Display information (default).'
+                );
+                printToTerminal('  contact: Begin contact process.');
+                printToTerminal('  clear: Clear the terminal screen.');
+                printToTerminal('  help: List available commands.');
+                printPrompt();
+                break;
+              case 'michael --info':
+                clearTerminal();
+                initialContent.forEach(item => printToTerminal(item));
+                printPrompt();
+                break;
+              default:
+                printToTerminal(`Command not found: ${command}`);
+                printPrompt();
+            }
+          }
+          terminalContent.scrollTop = terminalContent.scrollHeight;
+        } else if (event.key === 'Backspace') {
+          event.preventDefault();
+          userInput = userInput.slice(0, -1);
+          promptElement.textContent = userInput;
+          if (userInput === '') {
+            typingStarted = false;
+          }
+        } else if (event.key.length === 1) {
+          event.preventDefault();
+          userInput += event.key;
+          promptElement.textContent = userInput;
+          if (!typingStarted) {
+            typingStarted = true;
+            terminalContent.scrollTop = terminalContent.scrollHeight;
+          }
+          emptyCommandWarning = false;
+        }
+      });
+
+      initialContent.forEach(item => printToTerminal(item));
+      printPrompt();
+    </script>
     <script
       type="text/javascript"
       src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"
